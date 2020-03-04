@@ -88,10 +88,15 @@ static struct flaginfo input_flags[] = {
 		{ 0      ,	NULL 	}
 };
 
-static struct flaginfo = {
-        {  }.
-        {  }
-}
+static struct flaginfo controlFlags[] = {
+        { HUPCL , "hupcl" },
+        { 0, NULL }
+};
+
+static struct flaginfo outputFlags[] = {
+        { OPOST , "opost" },
+        { 0, NULL }
+};
 
 static struct flaginfo local_flags[] = {
 		{ ISIG   ,	"isig" },
@@ -112,6 +117,8 @@ void show_some_flags( struct termios *ttyp )
 {
 	show_flagset( ttyp->c_iflag, input_flags );
 	show_flagset( ttyp->c_lflag, local_flags );
+    show_flagset( ttyp->c_cflag, controlFlags );
+    show_flagset( ttyp->c_oflag, outputFlags );
 }
 
 void show_flagset( int thevalue, struct flaginfo thebitnames[] )
