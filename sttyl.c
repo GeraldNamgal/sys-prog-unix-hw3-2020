@@ -13,49 +13,78 @@
 #include    <sys/ioctl.h>
 #include    <fcntl.h>
 #include    <unistd.h>
+#include    <string.h>
 
 struct flaginfo { tcflag_t fl_value; char	*fl_name; };
 
-void handleArgs();
-void showBaud( int thespeed );
+void handleArgs( int, char *[], struct termios * );
+void showBaud( int  );
 void showWinSize();
-void showOtherSettings( struct termios *ttyp );
-void showSomeFlags( struct termios *ttyp );
+void showOtherSettings( struct termios * );
+void showSomeFlags( struct termios * );
 
-int main()
+int main(int ac, char *av[])
 {    
-	struct termios ttyinfo, orig;	                         // to hold tty info						
-	if ( tcgetattr( 0 , &ttyinfo ) == -1 ) {            // get tty info on stdin
+	struct termios ttyp;	                         // to hold tty info						
+	if ( tcgetattr( 0 , &ttyp ) == -1 ) {            // get tty info on stdin
 		perror( "could not get terminal parameters" );
 		exit(1);
 	}    
-    orig = ttyinfo;                                    // save original tty info
-	
-    // TODO
-    handleArgs();
     
-    showBaud( cfgetospeed( &ttyinfo ) );	           // get and show baud rate
-
-    showWinSize();                                       // prints rows and cols
-
-    showOtherSettings( &ttyinfo );
-
-    showSomeFlags( &ttyinfo );                                 // show flag info		   
-
     // TODO
-    ttyinfo.c_cc[VKILL] = 'd';
-    tcsetattr(0,TCSANOW, &ttyinfo);
-    printf("kill = ^%c; \n", ttyinfo.c_cc[VKILL] );
-
-    // TODO: necessary? -- return to original settings
-    tcsetattr(0,TCSANOW, &orig);
+    handleArgs( ac, av, &ttyp );      
 
 	return 0;
 }
 
-void handleArgs()
+void handleArgs( int ac, char *av[], struct termios *ttyp )
 {
-
+    if ( ac == 1 ) {
+        showBaud( cfgetospeed( ttyp ) );	           // get and show baud rate
+        showWinSize();                                   // prints rows and cols
+        showOtherSettings( ttyp );
+        showSomeFlags( ttyp );                                 // show flag info		   
+    }
+    
+    while (--ac) {
+        // TODO: something like --
+        // { "erase", VERASE },
+        // { "kill", VKILL }
+        av++;
+        if ( strcmp( *av, "erase" ) == 0 )
+            if ( ac > 1 ) {
+                if ( strlen( *++av ) == 1 ) {
+                    ttyp->c_cc[VERASE] = *av[0];
+                    tcsetattr(0,TCSANOW, ttyp);
+                    ac--;
+                }
+                else {
+                    fprintf( stderr, "sttyl: invalid integer argument: %s\n", *av );
+                    exit(1);
+                }
+            }
+            else {
+                perror( "dddf???" ); //TODO
+                exit(1);
+            }
+        else if ( strcmp( *av, "kill" ) == 0 ) {        
+            if ( ac > 1 ) {
+                if ( strlen( *++av ) == 1 ) {
+                    ttyp->c_cc[VKILL] = *av[0];
+                    tcsetattr(0,TCSANOW, ttyp);
+                    ac--;
+                }
+                else {
+                    fprintf( stderr, "sttyl: invalid integer argument: %s\n", *av );
+                    exit(1);
+                }
+            }
+            else {
+                perror( "dddf???" ); //TODO
+                exit(1);
+            }
+        }
+    }
 }
 
 /*
@@ -113,13 +142,14 @@ void showWinSize()
     }
 }
 
-void showOtherSettings( struct termios *ttyinfo ) {
-    printf("intr = ^%c; ", ttyinfo->c_cc[VINTR] + 'A' - 1);
-    printf("erase = ^%c; ", ttyinfo->c_cc[VERASE] + 'A' - 1);
-    printf("kill = ^%c; ", ttyinfo->c_cc[VKILL] + 'A' - 1);
-    printf("start = ^%c; ", ttyinfo->c_cc[VSTART] + 'A' - 1);
-    printf("stop = ^%c; ", ttyinfo->c_cc[VSTOP] + 'A' - 1);
-    printf("werase = ^%c; ", ttyinfo->c_cc[VWERASE] + 'A' - 1);
+void showOtherSettings( struct termios *ttyp )
+{
+    printf("intr = ^%c; ", ttyp->c_cc[VINTR] + 'A' - 1);
+    printf("erase = ^%c; ", ttyp->c_cc[VERASE] + 'A' - 1);
+    printf("kill = ^%c; ", ttyp->c_cc[VKILL] + 'A' - 1);
+    printf("start = ^%c; ", ttyp->c_cc[VSTART] + 'A' - 1);
+    printf("stop = ^%c; ", ttyp->c_cc[VSTOP] + 'A' - 1);
+    printf("werase = ^%c; ", ttyp->c_cc[VWERASE] + 'A' - 1);
     printf("\n");
 }
 
