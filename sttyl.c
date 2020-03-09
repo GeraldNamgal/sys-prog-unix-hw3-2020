@@ -28,6 +28,7 @@ struct charInfo { char *settingName;
 
 static struct termios ttyinfo;	                         // to hold tty info	                  
 
+// TODO: move some of these to inside functions?
 void handleArgs( int, char *[] );
 void showBaud( int );
 void showWinSize();
@@ -54,6 +55,7 @@ static struct charInfo settingChars[] = {
     { NULL, 0 }
 };
 
+// TODO: double check that flags match, e.g.,  iflag vs cflag
 static struct flaginfo flags[] = {		
     { ICRNL, &ttyinfo.c_iflag,	"icrnl" },
     { HUPCL, &ttyinfo.c_cflag, "hupcl" },
