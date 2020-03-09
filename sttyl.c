@@ -169,6 +169,7 @@ void showWinSize()
     }
 }
 
+// TODO: too short? delete and more the handleArgs()?
 void showOtherSettings()
 {
     for (int i = 0; settingChars[i].settingName != NULL; i++)
