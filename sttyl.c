@@ -14,77 +14,104 @@
 #include    <fcntl.h>
 #include    <unistd.h>
 #include    <string.h>
+#include    <stdbool.h>
 
-struct flaginfo { tcflag_t fl_value; char	*fl_name; };
+#define MAX_STR_SIZE 40
 
-void handleArgs( int, char *[], struct termios * );
-void showBaud( int  );
+// TODO: should these all be static? --
+
+struct flaginfo { tcflag_t fl_value;
+                  tcflag_t *field;
+                  char *fl_name; };
+struct charInfo { char *settingName;
+                  cc_t *settingChar; };
+
+static struct termios ttyinfo;	                         // to hold tty info	                  
+
+void handleArgs( int, char *[] );
+void showBaud( int );
 void showWinSize();
-void showOtherSettings( struct termios * );
-void showSomeFlags( struct termios * );
+void showOtherSettings();
+void showFlagset( struct flaginfo [] );
 
 int main(int ac, char *av[])
 {    
-	struct termios ttyp;	                         // to hold tty info						
-	if ( tcgetattr( 0 , &ttyp ) == -1 ) {            // get tty info on stdin
+	if ( tcgetattr( 0 , &ttyinfo ) == -1 ) {            // get tty info on stdin
 		perror( "could not get terminal parameters" );
 		exit(1);
 	}    
     
     // TODO
-    handleArgs( ac, av, &ttyp );      
+    handleArgs( ac, av );      
 
 	return 0;
 }
 
-void handleArgs( int ac, char *av[], struct termios *ttyp )
+static struct charInfo settingChars[] = {
+    { "intr", &ttyinfo.c_cc[VINTR] },
+    { "erase", &ttyinfo.c_cc[VERASE] },
+    { "kill", &ttyinfo.c_cc[VKILL] },
+    { NULL, 0 }
+};
+
+static struct flaginfo flags[] = {		
+    { ICRNL, &ttyinfo.c_iflag,	"icrnl" },
+    { HUPCL, &ttyinfo.c_cflag, "hupcl" },
+    { ECHO, &ttyinfo.c_lflag, "echo" },
+    { ECHOE, &ttyinfo.c_lflag,	"echoe" },    
+    { OPOST, &ttyinfo.c_oflag, "opost" },
+    { ICANON, &ttyinfo.c_lflag, "icanon" },  
+    { ISIG, &ttyinfo.c_lflag, "isig" },    
+    { 0, NULL, NULL }
+};
+
+void handleArgs( int ac, char *av[] )
 {
+    bool checkSettingChars( int, char **[] );  // TODO: move to top?
+
     if ( ac == 1 ) {
-        showBaud( cfgetospeed( ttyp ) );	           // get and show baud rate
+        showBaud( cfgetospeed( &ttyinfo ) );	       // get and show baud rate
         showWinSize();                                   // prints rows and cols
-        showOtherSettings( ttyp );
-        showSomeFlags( ttyp );                                 // show flag info		   
+        showOtherSettings();
+        showFlagset( flags );                                  // show flag info   
     }
-    
+
     while (--ac) {
-        // TODO: something like --
-        // { "erase", VERASE },
-        // { "kill", VKILL }
-        av++;
-        if ( strcmp( *av, "erase" ) == 0 )
-            if ( ac > 1 ) {
-                if ( strlen( *++av ) == 1 ) {
-                    ttyp->c_cc[VERASE] = *av[0];
-                    tcsetattr(0,TCSANOW, ttyp);
-                    ac--;
-                }
-                else {
-                    fprintf( stderr, "sttyl: invalid integer argument: %s\n", *av );
-                    exit(1);
-                }
-            }
-            else {
-                perror( "dddf???" ); //TODO
-                exit(1);
-            }
-        else if ( strcmp( *av, "kill" ) == 0 ) {        
-            if ( ac > 1 ) {
-                if ( strlen( *++av ) == 1 ) {
-                    ttyp->c_cc[VKILL] = *av[0];
-                    tcsetattr(0,TCSANOW, ttyp);
-                    ac--;
-                }
-                else {
-                    fprintf( stderr, "sttyl: invalid integer argument: %s\n", *av );
-                    exit(1);
-                }
-            }
-            else {
-                perror( "dddf???" ); //TODO
-                exit(1);
-            }
+        av++;       
+        if ( checkSettingChars( ac, &av ) ) {
+            ac--;
+            continue;
         }
+        
+        // TODO: check through flags (use strcat(?) with MAX_STR_SIZE above)
+
+        // TODO: no match found -- e.g., "stty: invalid argument ‘killd’"
     }
+}
+
+bool checkSettingChars( int ac, char **av[] )
+{
+    for (int i = 0; settingChars[i].settingName != NULL; i++)
+        
+        if ( strcmp( **av, settingChars[i].settingName ) == 0 ) {
+            if ( ac > 1 ) {
+                if ( strlen( *++*av ) == 1 ) {
+                    *settingChars[i].settingChar = **av[0];
+                    tcsetattr(0,TCSANOW, &ttyinfo);                   
+                    return true;
+                }
+                else {
+                    fprintf( stderr, "sttyl: invalid integer argument: %s\n", **av );
+                    exit(1);
+                }
+            }
+            else {
+                fprintf( stderr, "sttyl: missing argument to '%s'\n", **av );
+                exit(1);
+            }                
+        }
+
+    return false;
 }
 
 /*
@@ -142,57 +169,24 @@ void showWinSize()
     }
 }
 
-void showOtherSettings( struct termios *ttyp )
+void showOtherSettings()
 {
-    printf("intr = ^%c; ", ttyp->c_cc[VINTR] + 'A' - 1);
-    printf("erase = ^%c; ", ttyp->c_cc[VERASE] + 'A' - 1);
-    printf("kill = ^%c; ", ttyp->c_cc[VKILL] + 'A' - 1);
-    printf("start = ^%c; ", ttyp->c_cc[VSTART] + 'A' - 1);
-    printf("stop = ^%c; ", ttyp->c_cc[VSTOP] + 'A' - 1);
-    printf("werase = ^%c; ", ttyp->c_cc[VWERASE] + 'A' - 1);
-    printf("\n");
-}
-
-void showSomeFlags( struct termios * ttyp )
-{
-    void showFlagset( int thevalue, struct flaginfo thebitnames[] );
-
-    static struct flaginfo input_flags[] = {		
-        { ICRNL  ,	"icrnl" },
-        { 0      ,	NULL 	}
-    };
-    static struct flaginfo controlFlags[] = {
-        { HUPCL , "hupcl" },
-        { 0, NULL }
-    };
-    static struct flaginfo outputFlags[] = {
-        { OPOST , "opost" },
-        { 0, NULL }
-    };
-    static struct flaginfo local_flags[] = {
-        { ISIG   ,	"isig" },
-        { ICANON ,	"icanon" } , 
-        { ECHO   ,	"echo" },
-        { ECHOE  ,	"echoe" }, 
-        { 0	,	NULL }
-    };
-
-    showFlagset( ttyp->c_iflag, input_flags );
-	showFlagset( ttyp->c_lflag, local_flags );
-    showFlagset( ttyp->c_cflag, controlFlags );
-    showFlagset( ttyp->c_oflag, outputFlags );
+    for (int i = 0; settingChars[i].settingName != NULL; i++)
+        printf( "%s = ^%c; ", settingChars[i].settingName,
+                *settingChars[i].settingChar + 'A' - 1 );        
     printf("\n");
 }
 
 /*
  * 
  */
-void showFlagset( int thevalue, struct flaginfo thebitnames[] )
+void showFlagset( struct flaginfo flags[] )
 {	
-	for ( int i = 0; thebitnames[i].fl_value != 0 ; i++ ) {
-		if ( thevalue & thebitnames[i].fl_value )
-			printf("%s ", thebitnames[i].fl_name);
+	for ( int i = 0; flags[i].fl_value != 0 ; i++ ) {
+		if ( *flags[i].field & flags[i].fl_value )
+			printf("%s ", flags[i].fl_name);
 		else
-			printf("-%s ", thebitnames[i].fl_name);
+			printf("-%s ", flags[i].fl_name);
 	}
+    printf("\n");
 }
