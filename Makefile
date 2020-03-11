@@ -4,12 +4,12 @@
 # makefile for sttyl.c
 #
 
-CC     = cc
-CFLAGS = -Wall -Wextra -g 
+GCC    = gcc
+CFLAGS = -Wall -Wextra -g
 
 sttyl: sttyl.c
-	$(CC) $(CFLAGS) -o sttyl sttyl.c
+	$(GCC) $(CFLAGS) -o sttyl sttyl.c
 
 clean:
-	rm -f sttyl sttyl.o 
+	rm -f sttyl 
 

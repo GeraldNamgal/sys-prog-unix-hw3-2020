@@ -35,10 +35,11 @@ void showWinSize();
 void showOtherSettings();
 void showFlagset( struct flaginfo [] );
 
+// TODO: get rid of handleArgs and put everything in main()?
 int main(int ac, char *av[])
 {    
 	if ( tcgetattr( 0 , &ttyinfo ) == -1 ) {            // get tty info on stdin
-		perror( "could not get terminal parameters" );
+		perror( "could not get terminal parameters" ); 
 		exit(1);
 	}    
     
@@ -69,7 +70,8 @@ static struct flaginfo flags[] = {
 
 void handleArgs( int ac, char *av[] )
 {
-    bool checkSettingChars( int, char **[] );  // TODO: move to top?
+    bool checkSettingChars( int *, char **[] );  // TODO: move to top?
+    bool checkFlags();
 
     if ( ac == 1 ) {
         showBaud( cfgetospeed( &ttyinfo ) );	       // get and show baud rate
@@ -80,38 +82,65 @@ void handleArgs( int ac, char *av[] )
 
     while (--ac) {
         av++;       
-        if ( checkSettingChars( ac, &av ) ) {
-            ac--;
-            continue;
-        }
-        
-        // TODO: check through flags (use strcat(?) with MAX_STR_SIZE above)
-
-        // TODO: no match found -- e.g., "stty: invalid argument ‘killd’"
+        if ( !checkSettingChars( &ac, &av ) && !checkFlags( *av ) ) {
+            fprintf( stderr, "sttyl: invalid argument '%s'\n", *av );
+            exit(1);
+        }            
     }
+
+    tcsetattr(0,TCSANOW, &ttyinfo);
 }
 
-bool checkSettingChars( int ac, char **av[] )
+bool checkSettingChars( int *ac, char **av[] )
 {
     for (int i = 0; settingChars[i].settingName != NULL; i++)
         
-        if ( strcmp( **av, settingChars[i].settingName ) == 0 ) {
-            if ( ac > 1 ) {
-                if ( strlen( *++*av ) == 1 ) {
-                    *settingChars[i].settingChar = **av[0];
-                    tcsetattr(0,TCSANOW, &ttyinfo);                   
+        if ( strcmp( **av, settingChars[i].settingName ) == 0 )
+        {
+            if ( *ac > 1 )
+            {
+                if ( strlen( *++*av ) == 1 )
+                {
+                    *settingChars[i].settingChar = **av[0];                    
+                    (*ac)--;                   
                     return true;
                 }
-                else {
-                    fprintf( stderr, "sttyl: invalid integer argument: %s\n", **av );
+                else
+                {
+                    fprintf( stderr, "sttyl: invalid integer argument: %s\n"
+                            , **av );
                     exit(1);
                 }
             }
-            else {
+            else
+            {
                 fprintf( stderr, "sttyl: missing argument to '%s'\n", **av );
                 exit(1);
             }                
         }
+
+    return false;
+}
+
+bool checkFlags( char *av )
+{
+    for ( int i = 0; flags[i].fl_value != 0 ; i++ )
+    {
+		char strBuff[MAX_STR_SIZE] = "-";
+        strcat( strBuff, flags[i].fl_name );
+        
+        if ( strcmp( av, strBuff ) == 0 )
+        {           
+            *flags[i].field &= ~flags[i].fl_value;
+            return true;
+        }
+
+        else if ( strcmp( av, flags[i].fl_name ) == 0 )
+        {
+            *flags[i].field |= flags[i].fl_value;
+            return true;
+        }
+	}
 
     return false;
 }
