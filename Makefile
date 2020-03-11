@@ -7,9 +7,9 @@
 GCC    = gcc
 CFLAGS = -Wall -Wextra -g
 
-sttyl: sttyl.c
-	$(GCC) $(CFLAGS) -o sttyl sttyl.c
+sttyl:
+	$(GCC) $(CFLAGS) sttyl.c -o sttyl
 
 clean:
-	rm -f sttyl 
+	rm -f sttyl
 
