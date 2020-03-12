@@ -7,6 +7,8 @@
  * note: referenced "showtty.c" from lecture 5
  */
 
+// TODO: javadoc and commenting
+
 #include	<stdio.h>
 #include	<termios.h>
 #include	<stdlib.h>
@@ -25,7 +27,6 @@ struct charInfo { char *settingName;              // to hold settings' char info
                   cc_t *settingChar; };
 static struct termios ttyinfo;	                             // to hold tty info	                  
 
-// TODO: double check that flags match, e.g., iflag vs cflag
 /* Table to define/manage tty settings and associated flags
  */ 
 static struct flaginfo flags[] = {		
