@@ -2,12 +2,13 @@
 // CSCI E-28, Spring 2020
 // hw3
 
-/* sttyl.c
- * TODO: description stuff, etc.
+// TODO: javadoc and commenting
+
+/* *
+ * sttyl.c
+ * 
  * note: referenced "showtty.c" from lecture 5
  */
-
-// TODO: javadoc and commenting
 
 #include	<stdio.h>
 #include	<termios.h>
@@ -20,16 +21,18 @@
 
 #define MAX_STR_SIZE 40
 
-struct flaginfo { tcflag_t fl_value;              // to hold settings' flag info
+struct flagInfo { tcflag_t fl_value;              // to hold settings' flag info
                   tcflag_t *field;
                   char *fl_name; };
 struct charInfo { char *settingName;              // to hold settings' char info
                   cc_t *settingChar; };
-static struct termios ttyinfo;	                             // to hold tty info	                  
+                  
+static struct termios ttyinfo;	                  // to hold tty info	                  
 
-/* Table to define/manage tty settings and associated flags
+/* *
+ * Table to define/manage tty settings and associated flags
  */ 
-static struct flaginfo flags[] = {		
+static struct flagInfo flags[] = {		
     { ICRNL, &ttyinfo.c_iflag,	"icrnl" },
     { HUPCL, &ttyinfo.c_cflag, "hupcl" },
     { ECHO, &ttyinfo.c_lflag, "echo" },
@@ -40,7 +43,8 @@ static struct flaginfo flags[] = {
     { 0, NULL, NULL }
 };
 
-/* Table to define/manage tty settings and their corresponding character keys
+/* *
+ * Table to define/manage tty settings and their corresponding character keys
  */ 
 static struct charInfo settingChars[] = {
     { "intr", &ttyinfo.c_cc[VINTR] },
@@ -49,8 +53,11 @@ static struct charInfo settingChars[] = {
     { NULL, 0 }
 };
 
-/* main( int ac, char *av[] )
- *
+/* *
+ * main( int ac, char *av[] )
+ * purpose: 
+ * args: 
+ * rets: 
  */ 
 int main( int ac, char *av[] )
 {    
@@ -58,13 +65,13 @@ int main( int ac, char *av[] )
     bool checkSettingChars( int *, char **[] );  
     bool checkFlags();
     
-    if ( tcgetattr( 0 , &ttyinfo ) == -1 )              // get tty info on stdin
+    if ( tcgetattr( 0 , &ttyinfo ) == -1 )    // get tty info on stdin
 	{
         perror( "could not get terminal parameters" ); 
 		exit(1);
 	}  
 
-    if ( ac == 1 )                                    // if no arguments entered
+    if ( ac == 1 )                            // if no arguments entered
         displaySettings();   
 
     while (--ac)                              // handle any arguments one by one
@@ -78,29 +85,35 @@ int main( int ac, char *av[] )
         }            
     }
 
-    tcsetattr(0,TCSANOW, &ttyinfo);                              // set settings
+    tcsetattr(0,TCSANOW, &ttyinfo);           // set settings with any changes
 
 	return 0;
 }
 
-/* displaySettings()
- *
+/* *
+ * displaySettings()
+ * purpose:
+ * args:
+ * rets:
  */
 void displaySettings()
 {
     void showBaud( int );
     void showWinSize();
     void showOtherSettings();
-    void showFlagset( struct flaginfo [] );
+    void showFlagset( struct flagInfo [] );
     
-    showBaud( cfgetospeed( &ttyinfo ) );	       // get and show baud rate
-    showWinSize();                                   // prints rows and cols
-    showOtherSettings();                         // show some other settings
-    showFlagset( flags );                                  // show flag info  
+    showBaud( cfgetospeed( &ttyinfo ) );	  // get and show baud rate
+    showWinSize();                            // prints rows and cols
+    showOtherSettings();                      // show some other settings
+    showFlagset( flags );                     // show flag info  
 }
 
-/*
- *	prints the speed in english
+/* *
+ * showBaud( int thespeed )
+ * purpose: utility function for displaySettings(). Prints the speed in English
+ * args:
+ * rets:
  */
 void showBaud( int thespeed )
 {
@@ -130,8 +143,11 @@ void showBaud( int thespeed )
     printf(" baud; ");
 }
 
-/*
- *
+/* *
+ * showWinSize()
+ * purpose: utility function for displaySettings().
+ * args: 
+ * rets: 
  * note: referenced "set_term_dims.c" from lecture 5
  */
 void showWinSize()
@@ -159,24 +175,42 @@ void showWinSize()
         perror("/dev/tty");    
 }
 
-/*
- *
+/* *
+ * showOtherSettings()
+ * purpose: utility function for displaySettings().
+ * args:
+ * rets:
  */
 void showOtherSettings()
 {
+    int minAlphanumASCII = 31,
+        deleteASCII = 127;
+
     for (int i = 0; settingChars[i].settingName != NULL; i++)
     {
-        printf( "%s = ^%c; ", settingChars[i].settingName,
+        if ( *settingChars[i].settingChar > minAlphanumASCII      // basic chars
+                && *settingChars[i].settingChar < deleteASCII )
+            printf( "%s = %c; ", settingChars[i].settingName,
+                *settingChars[i].settingChar );
+
+        else if ( *settingChars[i].settingChar == deleteASCII )   // delete char
+            printf( "%s = ^%c; ", settingChars[i].settingName, '?' );
+
+        else                                                      // other chars
+            printf( "%s = ^%c; ", settingChars[i].settingName,
                 *settingChars[i].settingChar + 'A' - 1 );
     }
 
     printf("\n");
 }
 
-/*
- * 
+/* *
+ * showFlagset( struct flagInfo flags[] )
+ * purpose: utility function for displaySettings().
+ * args:
+ * rets:
  */
-void showFlagset( struct flaginfo flags[] )
+void showFlagset( struct flagInfo flags[] )
 {	
 	for ( int i = 0; flags[i].fl_value != 0 ; i++ )
     {
@@ -190,8 +224,11 @@ void showFlagset( struct flaginfo flags[] )
     printf("\n");
 }
 
-/*
- *
+/* *
+ * checkSettingChars( int *ac, char **av[] )
+ * purpose:
+ * args:
+ * rets:
  */ 
 bool checkSettingChars( int *ac, char **av[] )
 {
@@ -224,6 +261,12 @@ bool checkSettingChars( int *ac, char **av[] )
     return false;
 }
 
+/* *
+ * checkFlags( char *av )
+ * purpose: 
+ * args: 
+ * rets: 
+ */
 bool checkFlags( char *av )
 {
     for ( int i = 0; flags[i].fl_value != 0 ; i++ )
