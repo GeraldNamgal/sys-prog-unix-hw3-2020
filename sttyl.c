@@ -24,8 +24,6 @@
 #include    <stdbool.h>
 #include    <ctype.h>
 
-#define MAX_STR_SIZE 40
-
 struct flagInfo { tcflag_t fl_value;              // to hold settings' flag info
                   tcflag_t *field;
                   char *fl_name; };
@@ -38,24 +36,24 @@ static struct termios ttyinfo;	                  // to hold tty info
  * Table to define/manage tty settings and associated flags
  */ 
 static struct flagInfo flags[] = {		
-    { ICRNL, &ttyinfo.c_iflag,	"icrnl" },
-    { HUPCL, &ttyinfo.c_cflag, "hupcl" },
-    { ECHO, &ttyinfo.c_lflag, "echo" },
-    { ECHOE, &ttyinfo.c_lflag,	"echoe" },    
-    { OPOST, &ttyinfo.c_oflag, "opost" },
+    { ICRNL,  &ttyinfo.c_iflag,	"icrnl"  },
+    { HUPCL,  &ttyinfo.c_cflag, "hupcl"  },
+    { ECHO,   &ttyinfo.c_lflag, "echo"   },
+    { ECHOE,  &ttyinfo.c_lflag,	"echoe"  },    
+    { OPOST,  &ttyinfo.c_oflag, "opost"  },
     { ICANON, &ttyinfo.c_lflag, "icanon" },  
-    { ISIG, &ttyinfo.c_lflag, "isig" },    
-    { 0, NULL, NULL }
+    { ISIG,   &ttyinfo.c_lflag, "isig"   },    
+    { 0,      NULL,             NULL     }
 };
 
 /* *
  * Table to define/manage tty settings and their corresponding character keys
  */ 
 static struct charInfo settingChars[] = {
-    { "intr", &ttyinfo.c_cc[VINTR] },
+    { "intr",  &ttyinfo.c_cc[VINTR]  },
     { "erase", &ttyinfo.c_cc[VERASE] },
-    { "kill", &ttyinfo.c_cc[VKILL] },
-    { NULL, 0 }
+    { "kill",  &ttyinfo.c_cc[VKILL]  },
+    { NULL,    0                     }
 };
 
 /* *
@@ -250,9 +248,9 @@ bool checkSettingChars( int *ac, char **av[] )
         
         if ( strcmp( **av, settingChars[i].settingName ) == 0 )   // matches arg
         {
-            if ( *ac > 1 )                           // if there's another arg
+            if ( *ac > 1 )                            // if there's another arg
             {
-                if ( strlen( *++*av ) == 1 ) {       // if next arg is a char
+                if ( strlen( *++*av ) == 1 ) {        // if next arg is a char
                     *settingChars[i].settingChar = **av[0];       // change char                  
                     (*ac)--;                   
                     return true;
@@ -262,13 +260,13 @@ bool checkSettingChars( int *ac, char **av[] )
                     (*ac)--;                   
                     return true;
                 }
-                else {                               // if next arg isn't a char
+                else {                                // if next arg is invalid
                     fprintf( stderr, "sttyl: invalid integer argument: %s\n"
                             , **av );
                     exit(1);
                 }
             }
-            else                                     // if no other args follow
+            else                                      // if no other args follow
             {
                 fprintf( stderr, "sttyl: missing argument to '%s'\n", **av );
                 exit(1);
@@ -285,14 +283,12 @@ bool checkSettingChars( int *ac, char **av[] )
  * rets: if a setting was modified (true or false)
  */
 bool checkFlags( char *av )
-{
+{    
     for ( int i = 0; flags[i].fl_value != 0 ; i++ )      // traverse flags table
     {
-		char strBuff[MAX_STR_SIZE] = "-";
-        strcat( strBuff, flags[i].fl_name );
-        
-        if ( strcmp( av, strBuff ) == 0 )           // if matches [-]/'off' flag
-        {           
+        // if matches [-]/'off' flag
+        if ( av[0] == '-' && strcmp( &av[1], flags[i].fl_name ) == 0 )
+        {
             *flags[i].field &= ~flags[i].fl_value;       // turn off setting
             return true;
         }
