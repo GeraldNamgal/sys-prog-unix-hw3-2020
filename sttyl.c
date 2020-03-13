@@ -1,13 +1,17 @@
 // Gerald Arocena
 // CSCI E-28, Spring 2020
+// 3-14-2020
 // hw3
-
-// TODO: javadoc and commenting
 
 /* *
  * sttyl.c
- * 
- * note: referenced "showtty.c" from lecture 5
+ * Implements some of the Unix stty command. If no arguments are given, then
+ * some settings for stdin are displayed. If arguments are given then the
+ * settings for the corresponding arguments are changed in stdin. The following
+ * settings can be modified: erase, kill, intr, icrnl, hupcl, echo, echoe,
+ * opost, icanon, and isig 
+ * note: referenced "showtty.c" from lecture 5 
+ * usage: ./sttyl [SETTING]...
  */
 
 #include	<stdio.h>
@@ -55,15 +59,18 @@ static struct charInfo settingChars[] = {
 
 /* *
  * main( int ac, char *av[] )
- * purpose: 
- * args: 
- * rets: 
+ * purpose: handles command line arguments. If no args given, then
+ *          displaySettings() is called. Otherwise, checkSettingChars() or
+ *          checkFlags() changes the given settings. Settings are retrieved and
+ *          set with tcgetattr() and tcsetattr() respectively
+ * args: the number of command line arguments and the arguments themselves
+ * rets: exit status code
  */ 
 int main( int ac, char *av[] )
 {    
-	void displaySettings();
-    bool checkSettingChars( int *, char **[] );  
-    bool checkFlags();
+	void    displaySettings();
+    bool    checkSettingChars( int *, char **[] ),  
+            checkFlags();
     
     if ( tcgetattr( 0 , &ttyinfo ) == -1 )    // get tty info on stdin
 	{
@@ -92,16 +99,16 @@ int main( int ac, char *av[] )
 
 /* *
  * displaySettings()
- * purpose:
- * args:
- * rets:
+ * purpose: displays some terminal settings via utility functions
+ * args: none
+ * rets: none
  */
 void displaySettings()
 {
-    void showBaud( int );
-    void showWinSize();
-    void showOtherSettings();
-    void showFlagset( struct flagInfo [] );
+    void    showBaud( int ),
+            showWinSize(),
+            showOtherSettings(),
+            showFlagset( struct flagInfo [] );
     
     showBaud( cfgetospeed( &ttyinfo ) );	  // get and show baud rate
     showWinSize();                            // prints rows and cols
@@ -111,58 +118,60 @@ void displaySettings()
 
 /* *
  * showBaud( int thespeed )
- * purpose: utility function for displaySettings(). Prints the speed in English
- * args:
- * rets:
+ * purpose: utility function for displaySettings(). Prints the baud rate speed
+ *          in English to stdout
+ * args: the output baud rate speed
+ * rets: none
  */
 void showBaud( int thespeed )
 {
 	printf("speed ");
 	switch ( thespeed ) {
-        case B0: printf("0");	        break;
-        case B50: printf("50");         break;
-        case B75: printf("75");         break;
-        case B110: printf("110");	    break;
-        case B134: printf("134");	    break;
-        case B150: printf("150");	    break;
-        case B200: printf("200");	    break;
-		case B300: printf("300");	    break;
-		case B600: printf("600");	    break;
-		case B1200: printf("1200");     break;
-		case B1800:	printf("1800");     break;
-		case B2400:	printf("2400");     break;
-		case B4800:	printf("4800");     break;
-		case B9600:	printf("9600");     break;
-        case B19200: printf("19200");	break;
-        case B38400: printf("38400");	break;
-        case B57600: printf("57600");	break;
+        case B0:      printf("0");	    break;
+        case B50:     printf("50");     break;
+        case B75:     printf("75");     break;
+        case B110:    printf("110");	break;
+        case B134:    printf("134");	break;
+        case B150:    printf("150");	break;
+        case B200:    printf("200");	break;
+		case B300:    printf("300");	break;
+		case B600:    printf("600");	break;
+		case B1200:   printf("1200");   break;
+		case B1800:	  printf("1800");   break;
+		case B2400:	  printf("2400");   break;
+		case B4800:	  printf("4800");   break;
+		case B9600:	  printf("9600");   break;
+        case B19200:  printf("19200");	break;
+        case B38400:  printf("38400");	break;
+        case B57600:  printf("57600");	break;
         case B115200: printf("115200"); break;
         case B230400: printf("230400"); break;
-		default: printf("Fast");        break;
+		default:      printf("Fast");   break;
 	}
     printf(" baud; ");
 }
 
 /* *
  * showWinSize()
- * purpose: utility function for displaySettings().
- * args: 
- * rets: 
+ * purpose: utility function for displaySettings(). Gets and prints the terminal
+ *          window's dimensions to stdout
+ * args: none
+ * rets: none
  * note: referenced "set_term_dims.c" from lecture 5
  */
 void showWinSize()
 {
-    int	fd;
-	struct winsize w;	
-	int	rv;    
+    int	   fd,
+           rv;
+	struct winsize w;	                      // see termios.h for more info   
     
-    if ( (fd = open( "/dev/tty", O_RDONLY )) == -1 )
+    if ( (fd = open( "/dev/tty", O_RDONLY )) == -1 )  // open terminal
     {
 		perror("/dev/tty");
 		exit(1);
 	}
     
-    rv = ioctl(fd, TIOCGWINSZ, &w);
+    rv = ioctl(fd, TIOCGWINSZ, &w);           // puts terminal dimensions into w
     if ( rv == -1 )
     {
 		perror("/dev/tty");
@@ -177,26 +186,27 @@ void showWinSize()
 
 /* *
  * showOtherSettings()
- * purpose: utility function for displaySettings().
- * args:
- * rets:
+ * purpose: utility function for displaySettings(). Prints some terminal
+ *          settings to stdout
+ * args: none
+ * rets: none
  */
 void showOtherSettings()
 {
-    int minAlphanumASCII = 31,
-        deleteASCII = 127;
+    int    minAlphanumASCII = 31,
+           deleteASCII = 127;
 
-    for (int i = 0; settingChars[i].settingName != NULL; i++)
+    for (int i = 0; settingChars[i].settingName != NULL; i++)  // traverse table
     {
-        if ( *settingChars[i].settingChar > minAlphanumASCII      // basic chars
+        if ( *settingChars[i].settingChar > minAlphanumASCII    // if basic char
                 && *settingChars[i].settingChar < deleteASCII )
             printf( "%s = %c; ", settingChars[i].settingName,
                 *settingChars[i].settingChar );
 
-        else if ( *settingChars[i].settingChar == deleteASCII )   // delete char
+        else if ( *settingChars[i].settingChar == deleteASCII ) // if del char
             printf( "%s = ^%c; ", settingChars[i].settingName, '?' );
 
-        else                                                      // other chars
+        else                                                    // if other char
             printf( "%s = ^%c; ", settingChars[i].settingName,
                 *settingChars[i].settingChar + 'A' - 1 );
     }
@@ -206,18 +216,19 @@ void showOtherSettings()
 
 /* *
  * showFlagset( struct flagInfo flags[] )
- * purpose: utility function for displaySettings().
- * args:
- * rets:
+ * purpose: utility function for displaySettings(). Prints if setting is on or
+ *          off
+ * args: the table of settings/flags to show
+ * rets: none
  */
 void showFlagset( struct flagInfo flags[] )
 {	
-	for ( int i = 0; flags[i].fl_value != 0 ; i++ )
+	for ( int i = 0; flags[i].fl_value != 0 ; i++ )      // traverse flags table
     {
-		if ( *flags[i].field & flags[i].fl_value )
+		if ( *flags[i].field & flags[i].fl_value )       // if setting is on
 			printf("%s ", flags[i].fl_name);
 		
-        else
+        else                                             // if setting is off
 			printf("-%s ", flags[i].fl_name);
 	}
 
@@ -226,32 +237,33 @@ void showFlagset( struct flagInfo flags[] )
 
 /* *
  * checkSettingChars( int *ac, char **av[] )
- * purpose:
- * args:
- * rets:
+ * purpose: changes the execution character of a setting. Checks first if the
+ *          args given are valid 
+ * args: the number of command line arguments and the arguments themselves
+ * rets: if a setting was changed (true or false)
  */ 
 bool checkSettingChars( int *ac, char **av[] )
 {
-    for (int i = 0; settingChars[i].settingName != NULL; i++)
+    for (int i = 0; settingChars[i].settingName != NULL; i++)  // traverse table
         
-        if ( strcmp( **av, settingChars[i].settingName ) == 0 )
+        if ( strcmp( **av, settingChars[i].settingName ) == 0 )  // matches arg
         {
-            if ( *ac > 1 )
+            if ( *ac > 1 )                           // if there's another arg
             {
-                if ( strlen( *++*av ) == 1 )
+                if ( strlen( *++*av ) == 1 )         // if next arg is a char
                 {
-                    *settingChars[i].settingChar = **av[0];                    
+                    *settingChars[i].settingChar = **av[0];  // change char                  
                     (*ac)--;                   
                     return true;
                 }
-                else
+                else                                 // if next arg isn't a char
                 {
                     fprintf( stderr, "sttyl: invalid integer argument: %s\n"
                             , **av );
                     exit(1);
                 }
             }
-            else
+            else                                     // if no other args follow
             {
                 fprintf( stderr, "sttyl: missing argument to '%s'\n", **av );
                 exit(1);
@@ -263,26 +275,26 @@ bool checkSettingChars( int *ac, char **av[] )
 
 /* *
  * checkFlags( char *av )
- * purpose: 
- * args: 
- * rets: 
+ * purpose: turns a terminal setting on or off
+ * args: name of setting
+ * rets: if a setting was modified (true or false)
  */
 bool checkFlags( char *av )
 {
-    for ( int i = 0; flags[i].fl_value != 0 ; i++ )
+    for ( int i = 0; flags[i].fl_value != 0 ; i++ )      // traverse flags table
     {
 		char strBuff[MAX_STR_SIZE] = "-";
         strcat( strBuff, flags[i].fl_name );
         
-        if ( strcmp( av, strBuff ) == 0 )
+        if ( strcmp( av, strBuff ) == 0 )           // if matches [-]/'off' flag
         {           
-            *flags[i].field &= ~flags[i].fl_value;
+            *flags[i].field &= ~flags[i].fl_value;       // turn off setting
             return true;
         }
 
-        else if ( strcmp( av, flags[i].fl_name ) == 0 )
+        else if ( strcmp( av, flags[i].fl_name ) == 0 )  // if matches 'on' flag 
         {
-            *flags[i].field |= flags[i].fl_value;
+            *flags[i].field |= flags[i].fl_value;        // turn on setting
             return true;
         }
 	}
