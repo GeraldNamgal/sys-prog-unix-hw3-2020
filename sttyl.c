@@ -22,6 +22,7 @@
 #include    <unistd.h>
 #include    <string.h>
 #include    <stdbool.h>
+#include    <ctype.h>
 
 #define MAX_STR_SIZE 40
 
@@ -161,9 +162,9 @@ void showBaud( int thespeed )
  */
 void showWinSize()
 {
-    int	   fd,
-           rv;
-	struct winsize w;	                      // see termios.h for more info   
+    int	     fd,
+             rv;
+	struct   winsize w;	                      // see termios.h for more info   
     
     if ( (fd = open( "/dev/tty", O_RDONLY )) == -1 )  // open terminal
     {
@@ -193,22 +194,23 @@ void showWinSize()
  */
 void showOtherSettings()
 {
-    int    minAlphanumASCII = 31,
-           deleteASCII = 127;
+    int deleteASCII = 127;
 
     for (int i = 0; settingChars[i].settingName != NULL; i++)  // traverse table
     {
-        if ( *settingChars[i].settingChar > minAlphanumASCII    // if basic char
-                && *settingChars[i].settingChar < deleteASCII )
-            printf( "%s = %c; ", settingChars[i].settingName,
-                *settingChars[i].settingChar );
+        if ( *settingChars[i].settingChar == deleteASCII )     // if del char
+            printf( "%s = ^%c; ", settingChars[i].settingName, '?' );        
 
-        else if ( *settingChars[i].settingChar == deleteASCII ) // if del char
-            printf( "%s = ^%c; ", settingChars[i].settingName, '?' );
-
-        else                                                    // if other char
+        else if ( *settingChars[i].settingChar == _POSIX_VDISABLE )  // if undef
+            printf( "%s = <undef>; ", settingChars[i].settingName );
+        
+        else if ( iscntrl( *settingChars[i].settingChar ) )    // if cntrl char
             printf( "%s = ^%c; ", settingChars[i].settingName,
-                *settingChars[i].settingChar + 'A' - 1 );
+                *settingChars[i].settingChar + 'A' - 1 );    
+
+        else                                                   // default
+            printf( "%s = %c; ", settingChars[i].settingName,
+                *settingChars[i].settingChar );        
     }
 
     printf("\n");
@@ -246,18 +248,21 @@ bool checkSettingChars( int *ac, char **av[] )
 {
     for (int i = 0; settingChars[i].settingName != NULL; i++)  // traverse table
         
-        if ( strcmp( **av, settingChars[i].settingName ) == 0 )  // matches arg
+        if ( strcmp( **av, settingChars[i].settingName ) == 0 )   // matches arg
         {
             if ( *ac > 1 )                           // if there's another arg
             {
-                if ( strlen( *++*av ) == 1 )         // if next arg is a char
-                {
-                    *settingChars[i].settingChar = **av[0];  // change char                  
+                if ( strlen( *++*av ) == 1 ) {       // if next arg is a char
+                    *settingChars[i].settingChar = **av[0];       // change char                  
                     (*ac)--;                   
                     return true;
                 }
-                else                                 // if next arg isn't a char
-                {
+                else if ( strcmp( "undef", **av ) == 0 ) {  // if next arg undef
+                    *settingChars[i].settingChar = _POSIX_VDISABLE;  // chg char                  
+                    (*ac)--;                   
+                    return true;
+                }
+                else {                               // if next arg isn't a char
                     fprintf( stderr, "sttyl: invalid integer argument: %s\n"
                             , **av );
                     exit(1);
