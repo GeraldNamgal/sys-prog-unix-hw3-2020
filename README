@@ -1,0 +1,16 @@
+Gerald Arocena
+CSCI E-20, Spring 2020
+3-14-2020
+README for hw3
+
+"In this file put a list of the files you are submitting with
+a brief (four to ten words) description of each one." --
+
+- Makefile                   <-- the Makefile needed to run the program 
+- Plan                       <-- the plan for how my program will be implemented
+- sttyl.c                    <-- the main program
+
+"Also put any notes to the grader." --
+
+- To compile sttyl, navigate to the directory with sttyl.c and run "make" at
+  the command line. Then to run sttyl, the usage is "./sttyl [SETTING]..."

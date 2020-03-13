@@ -1,0 +1,52 @@
+Gerald Arocena
+CSCI E-20, Spring 2020
+3-14-2020
+Plan for hw3
+
+Purpose:
+
+The purpose of sttyl is to create a version of Unix's stty program. As compared
+to stty, my sttyl version includes the following differing qualities (which may
+not be exhaustive):
+
+    [1] it only works for a subset of settings, i.e, erase, kill, intr, icrnl,
+        hupcl, echo, echoe, opost, icanon, and isig
+    [2] it does not accept any option arguments, e.g., [-a]
+    [3] it cannot change an attribute's character setting to two-char           
+        combinations such as those of control characters; only single chars can
+        be handled for this
+
+Outline:
+
+
+
+Interface:
+
+
+
+Data Structures:
+
+
+
+Program Flow:
+
+
+
+Algorithm:
+
+
+
+Error Handling:
+
+The program does exit(1) in the following situations:
+
+    [1] 
+
+Layering:
+
+
+
+File Structure:
+
+
+
