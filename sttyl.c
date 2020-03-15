@@ -107,12 +107,12 @@ void displaySettings()
     void    showBaud( int ),
             showWinSize(),
             showOtherSettings(),
-            showFlagset( struct flagInfo [] );
+            showFlagset();
     
     showBaud( cfgetospeed( &ttyinfo ) );	  // get and show baud rate
     showWinSize();                            // prints rows and cols
     showOtherSettings();                      // show some other settings
-    showFlagset( flags );                     // show flag info  
+    showFlagset();                     // show flag info  
 }
 
 /* *
@@ -221,7 +221,7 @@ void showOtherSettings()
  * args: the table of settings/flags to show
  * rets: none
  */
-void showFlagset( struct flagInfo flags[] )
+void showFlagset()
 {	
 	for ( int i = 0; flags[i].fl_value != 0 ; i++ )      // traverse flags table
     {
