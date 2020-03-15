@@ -14,39 +14,91 @@ not be exhaustive):
     [2] it does not accept any option arguments, e.g., [-a]
     [3] it cannot change an attribute's character setting to two-char           
         combinations such as those of control characters; only single chars can
-        be handled for this
+        be handled for this in sttyl
 
 Outline:
 
-
+If no argument is given to sttyl on the command line, then some pre-selected
+settings are displayed similar to when stty is run with the "-a" option. For
+each valid argument given, sttyl handles settings in the same manner as stty.
+For instance, sttyl can change settings' characters and turn settings on or off
+using the same usage pattern as stty.
 
 Interface:
 
+The command line is the only user interface for sttyl. The command line syntax
+is explained below:
 
+    ./sttyl [SETTING]...
+
+    modifies the given terminal setting(s). To turn a setting off, precede its
+    name with a '-', e.g., "-echo". To turn a setting on, type its name without
+    the '-'. For settings that have an associated character that executes them,
+    enter the name of the setting followed by a character to change the
+    association to, e.g., "kill h".
 
 Data Structures:
 
-
+I used arrays of structs to hold tables of settings and associated information.
+One table called "settingChars" is an array of charInfo structs that's used for
+settings that have an associated character that executes them. Another table
+called "flags" is an array of flagInfo structs that's used for settings that can
+be turned on and off. Both tables reference a static struct termios called
+"ttyinfo" that's used to retrieve, hold, and modify the terminal's settings. The
+flagInfo struct contains a tcflag_t value needed to turn an associated setting
+on or off and the charInfo struct contains a cc_t value needed to change an
+associated setting's character. Both table structs also contain the name used to
+reference a setting as a command line argument. I also used a struct winsize in
+order to get the terminal window's dimensions information.
 
 Program Flow:
 
-
+1. Retrieve tty settings.
+2. Display settings (if no args given) or modify settings using table-driven
+   approach.
+3. Set tty settings including any modifications made.
 
 Algorithm:
 
-
+sttyl employs a table-driven approach which allows for looking up information in
+a table rather than using superfluous if statements. Table-driven programming
+makes complex chains of logic more manageable and allows for easy modification,
+and increased efficiency. Instead of using if statements to identify and handle
+command line arguments and settings, sttyl traverses the struct array tables to
+find the information it needs in the array entries.
 
 Error Handling:
 
-The program does exit(1) in the following situations:
+The program prints an error message and does exit(1) in the following
+situations:
 
-    [1] 
+    [1] if it could not retrieve terminal parameters with tcgetattr()
+    [2] if a given command line argument is invalid or a required argument is
+        missing
+    [3] if it could not open the terminal window settings or access a struct
+        winsize with ioctl()
+
+The program just prints an error message in the following situations:
+
+    [1] if tcsetattr() fails
+    [2] if could not close file descriptor in showWinSize() after opening
+        terminal window settings
+    [3] if cfgetospeed() fails when trying to get baud speed
 
 Layering:
 
+    main() in sttyl.c calls:
+        displaySettings()     -- calls functions that display settings info to
+                                 stdout
+        checkSettingChars()   -- changes character of a setting if arg matches
+        checkFlags()          -- turns setting on or off if arg matches
 
+    displaySettings() in sttyl.c calls:
+        showBaud()            -- prints baud speed to stdout
+        showWinSize()         -- prints terminal window's # rows and columns
+        showOtherSettings()   -- prints char settings table info to stdout
+        showFlagSet()         -- prints flags table info (on or off) to stdout
 
 File Structure:
 
-
-
+    sttyl.c    -- the seven functions listed above

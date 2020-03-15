@@ -14,15 +14,16 @@
  * usage: ./sttyl [SETTING]...
  */
 
-#include	<stdio.h>
-#include	<termios.h>
-#include	<stdlib.h>
+#include    <stdio.h>
+#include    <termios.h>
+#include    <stdlib.h>
 #include    <sys/ioctl.h>
 #include    <fcntl.h>
 #include    <unistd.h>
 #include    <string.h>
 #include    <stdbool.h>
 #include    <ctype.h>
+#include    <errno.h>
 
 struct flagInfo { tcflag_t fl_value;              // to hold settings' flag info
                   tcflag_t *field;
@@ -67,15 +68,15 @@ static struct charInfo settingChars[] = {
  */ 
 int main( int ac, char *av[] )
 {    
-	void    displaySettings();
+    void    displaySettings();
     bool    checkSettingChars( int *, char **[] ),  
             checkFlags();
     
     if ( tcgetattr( 0 , &ttyinfo ) == -1 )    // get tty info on stdin
-	{
+    {
         perror( "could not get terminal parameters" ); 
-		exit(1);
-	}  
+	exit(1);
+    }  
 
     if ( ac == 1 )                            // if no arguments entered
         displaySettings();   
@@ -84,16 +85,17 @@ int main( int ac, char *av[] )
     {
         av++;       
         
-        if ( !checkSettingChars( &ac, &av ) && !checkFlags( *av ) )
-        {
+        if ( !checkSettingChars( &ac, &av ) && !checkFlags( *av ) ) {
             fprintf( stderr, "sttyl: invalid argument '%s'\n", *av );
             exit(1);
         }            
     }
 
-    tcsetattr(0,TCSANOW, &ttyinfo);           // set settings with any changes
-
-	return 0;
+    if ( tcsetattr( 0, TCSANOW, &ttyinfo ) == -1 ) // set settings & any changes
+        fprintf( stderr, "sttyl: settings not modified: %s\n"
+                    , strerror( errno ) );
+	
+    return 0;
 }
 
 /* *
@@ -109,10 +111,15 @@ void displaySettings()
             showOtherSettings(),
             showFlagset();
     
-    showBaud( cfgetospeed( &ttyinfo ) );	  // get and show baud rate
+    int speed = cfgetospeed( &ttyinfo );
+    if (speed != -1 )
+        showBaud( speed );	                  // get and show baud rate
+    else
+        fprintf( stderr, "sttyl: could not show baud speed: %s\n"
+                    , strerror( errno ) );
     showWinSize();                            // prints rows and cols
     showOtherSettings();                      // show some other settings
-    showFlagset();                     // show flag info  
+    showFlagset();                            // show flag info  
 }
 
 /* *
@@ -124,28 +131,28 @@ void displaySettings()
  */
 void showBaud( int thespeed )
 {
-	printf("speed ");
+    printf("speed ");
 	switch ( thespeed ) {
-        case B0:      printf("0");	    break;
-        case B50:     printf("50");     break;
-        case B75:     printf("75");     break;
-        case B110:    printf("110");	break;
-        case B134:    printf("134");	break;
-        case B150:    printf("150");	break;
-        case B200:    printf("200");	break;
-		case B300:    printf("300");	break;
-		case B600:    printf("600");	break;
-		case B1200:   printf("1200");   break;
-		case B1800:	  printf("1800");   break;
-		case B2400:	  printf("2400");   break;
-		case B4800:	  printf("4800");   break;
-		case B9600:	  printf("9600");   break;
-        case B19200:  printf("19200");	break;
-        case B38400:  printf("38400");	break;
-        case B57600:  printf("57600");	break;
-        case B115200: printf("115200"); break;
-        case B230400: printf("230400"); break;
-		default:      printf("Fast");   break;
+	case B0:      printf("0");      break;
+	case B50:     printf("50");     break;
+	case B75:     printf("75");     break;
+	case B110:    printf("110");	break;
+	case B134:    printf("134");	break;
+	case B150:    printf("150");	break;
+	case B200:    printf("200");	break;
+	case B300:    printf("300");	break;
+	case B600:    printf("600");	break;
+	case B1200:   printf("1200");   break;
+	case B1800:   printf("1800");   break;
+	case B2400:   printf("2400");   break;
+	case B4800:   printf("4800");   break;
+	case B9600:   printf("9600");   break;
+	case B19200:  printf("19200");	break;
+	case B38400:  printf("38400");	break;
+	case B57600:  printf("57600");	break;
+	case B115200: printf("115200"); break;
+	case B230400: printf("230400"); break;
+	default:      printf("Fast");   break;
 	}
     printf(" baud; ");
 }
@@ -162,22 +169,22 @@ void showWinSize()
 {
     int	     fd,
              rv;
-	struct   winsize w;	                      // see termios.h for more info   
+    struct   winsize w;	                  // see termios.h for more info   
     
     if ( (fd = open( "/dev/tty", O_RDONLY )) == -1 )  // open terminal
     {
-		perror("/dev/tty");
-		exit(1);
-	}
+	perror("/dev/tty");
+	exit(1);
+    }
     
     rv = ioctl(fd, TIOCGWINSZ, &w);           // puts terminal dimensions into w
     if ( rv == -1 )
     {
-		perror("/dev/tty");
-		exit(1);
-	}
+	perror("/dev/tty");
+	exit(1);
+    }
 
-	printf("rows %d; cols %d; ", w.ws_row, w.ws_col);
+    printf("rows %d; cols %d; ", w.ws_row, w.ws_col);
     
     if ( close(fd) == -1 )    
         perror("/dev/tty");    
@@ -223,14 +230,14 @@ void showOtherSettings()
  */
 void showFlagset()
 {	
-	for ( int i = 0; flags[i].fl_value != 0 ; i++ )      // traverse flags table
+    for ( int i = 0; flags[i].fl_value != 0 ; i++ )  // traverse flags table
     {
-		if ( *flags[i].field & flags[i].fl_value )       // if setting is on
-			printf("%s ", flags[i].fl_name);
+	if ( *flags[i].field & flags[i].fl_value )   // if setting is on
+	    printf("%s ", flags[i].fl_name);
 		
-        else                                             // if setting is off
-			printf("-%s ", flags[i].fl_name);
-	}
+        else                                         // if setting is off
+	    printf("-%s ", flags[i].fl_name);
+    }
 
     printf("\n");
 }
@@ -298,7 +305,7 @@ bool checkFlags( char *av )
             *flags[i].field |= flags[i].fl_value;        // turn on setting
             return true;
         }
-	}
+    }
 
     return false;
 }
